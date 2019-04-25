@@ -31,3 +31,11 @@
     transform: rotate(360deg);
   }
 }
+
+.Nav-bar {
+}
+
+.Nav-bar ul li {
+  display: inline-block;
+  padding-right: 10px;
+}
