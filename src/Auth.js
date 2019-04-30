@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { Route, Redirect, withRouter } from "react-router-dom";
+import { Link } from "react-router-dom";
+
 import gundb from "./gundb";
 
 const createAuth = gunUser => ({
@@ -29,22 +31,30 @@ const fakeAuth = createAuth(gundb.user());
 
 export const AuthContext = React.createContext(fakeAuth);
 
-export const AuthButton = withRouter(({ history }) =>
-  fakeAuth.isAuthenticated ? (
+export const AuthButton = withRouter(({ history }) => {
+  const [alias, setAlias] = useState("");
+
+  gundb.user().open(user => {
+    setAlias(user.alias);
+  });
+  const { epub } = gundb.user().pair();
+  return fakeAuth.isAuthenticated ? (
     <p>
-      Welcome!{" "}
-      <button
+      {`Welcome `}
+      <Link to={`/profile/${epub}`}>{alias}</Link>
+      {` `}
+      <Link
         onClick={() => {
           fakeAuth.signout(() => history.push("/"));
         }}
       >
-        Sign out
-      </button>
+        {`(sign out)`}
+      </Link>
     </p>
   ) : (
     <p>You are not logged in.</p>
-  )
-);
+  );
+});
 
 export function PrivateRoute({ component: Component, ...rest }) {
   console.log("privateRoute", fakeAuth);

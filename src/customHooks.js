@@ -1,6 +1,8 @@
 import Gun from "gun/gun";
+import { AuthContext } from "./Auth";
 
-import { useState, useEffect, useDebugValue } from "react";
+import { useContext, useState, useEffect, useDebugValue } from "react";
+import { saveSecretProfileValue, readSecretProfileValue } from "./gunSecrets";
 
 export const useGunHash = node => {
   const [state, setState] = useState({});
@@ -62,56 +64,43 @@ export const useGunArray = node => {
   return [state, setArray];
 };
 
-export const useGunUserNode = gunUser => {
-  const pair = gunUser.pair();
-
-  const node = gunUser.get("profile");
-  const [state, setState] = useState({});
-  const [count, setCount] = useState(0);
-  console.log({ state });
-  useDebugValue(`updated ${count} times`);
-  // const putOnNode = node => async (data, putPath) => {
-  //   const nextNode = putPath ? node.path(putPath) : node;
-  //   if (typeof data === "object" && data !== null) {
-  //     Object.keys(data).forEach(key => putOnNode(nextNode)(data[key], key));
-  //   } else {
-  //     const encrypted = await Gun.SEA.encrypt(
-  //       data,
-  //       await Gun.SEA.secret(pair.epub, pair)
-  //     );
-  //     nextNode.put(encrypted);
-  //   }
-  // };
-
-  // const put = putOnNode(node);
+export const useProfile = () => {
+  const { gunUser } = useContext(AuthContext);
+  console.log({ gunUser });
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  // const [epub, setEpub] = useState("");
+  // const [alias, setAlias] = useState("");
+  const { epub } = gunUser.pair();
+  const alias = gunUser.alias;
+  const update = () => {
+    readSecretProfileValue(gunUser, "email").then(email => setEmail(email));
+    readSecretProfileValue(gunUser, "name").then(name => setName(name));
+  };
 
   useEffect(() => {
-    const update = data => {
-      console.log({ data });
-      Object.keys(data).forEach(async key => {
-        const value = data[key];
-        const decryptedValue = await Gun.SEA.decrypt(
-          value,
-          await Gun.SEA.secret(pair.epub, pair)
-        );
-        //const decryptedValue = await node.get(key).decrypt();
-        console.log({ pair, value, decryptedValue });
-        setState({ ...state, [key]: decryptedValue });
-      });
+    gunUser.open(user => {
+      console.log("open user", user);
+      // setEpub(user.epub);
+      // setAlias(user.alias);
+      update();
+    });
 
-      // To force re-render
-      setCount(count => count + 1);
-    };
-    const subscribe = () => {
-      // node.open(update);
-      node.on(update, { wait: 99 });
-    };
-    subscribe();
+    //gunUser.get("profile").on(update, { wait: 99 });
+    update();
   }, []);
+  const save = e => {
+    e.preventDefault();
+    console.log({ name, email });
 
-  // const del = key => {
-  //   put(key, null);
-  //   node.load(data => setState(data));
-  // };
-  return [state];
+    saveSecretProfileValue(gunUser, "email", email);
+    saveSecretProfileValue(gunUser, "name", name);
+  };
+  const profile = { email, name, epub, alias };
+  console.log({ profile }, "customHooks");
+  const setProfile = profileObject => {
+    if (profileObject.email) setEmail(profileObject.email);
+    if (profileObject.name) setName(profileObject.name);
+  };
+  return [profile, setProfile, save];
 };
